@@ -2,45 +2,93 @@
 
 [![tests](https://github.com/FPires99/helpdesk-pro/actions/workflows/tests.yml/badge.svg)](https://github.com/FPires99/helpdesk-pro/actions/workflows/tests.yml)
 
-An IT service desk where employees raise support tickets and the IT team works the queue, with priority-based target times, internal notes and a live dashboard.
+An IT service desk where employees raise support tickets and the IT team works the queue. It has priority-based target times, a self-service knowledge base, email notifications, reporting and a REST API.
 
-Built with **Laravel 12**, **Blade**, **Tailwind CSS** and **Alpine.js**, and covered by automated feature tests.
+Built with **Laravel 12**, **Blade**, **Tailwind CSS** and **Alpine.js**, and covered by 90+ automated feature tests that run on every push.
 
 ![Technician dashboard](docs/screenshots/dashboard.png)
 
 ## Try it
 
-The login page has one-click demo accounts. All demo users use the password `password`.
+The login page has one-click demo accounts. All demo users use the password `password`, and the demo data resets every night.
 
 | Role | Email | What they can do |
 | --- | --- | --- |
-| Employee | `employee@helpdesk.test` | Raise tickets, reply, see only their own tickets |
-| Technician | `tech@helpdesk.test` | See every ticket, assign, change status/priority, write internal notes |
-| Admin | `admin@helpdesk.test` | Everything a technician can do, plus delete tickets |
+| Employee | `employee@helpdesk.test` | Raise tickets, reply, rate the support, use the knowledge base |
+| Technician | `tech@helpdesk.test` | Work the whole queue, assign, internal notes, saved replies, reports, write articles |
+| Admin | `admin@helpdesk.test` | Everything a technician can do, plus user management and deleting tickets |
 
 ## Features
 
-- **Three roles with enforced permissions.** Employees only ever see their own tickets; staff see the whole queue. Rules live in a [policy](app/Policies/TicketPolicy.php) and are checked on every request.
-- **Ticket lifecycle.** Open → In progress → Waiting on user → Resolved → Closed, with `resolved_at` tracked automatically.
-- **Priority-based target times (SLA).** Urgent 2h, High 8h, Medium 24h, Low 72h. Overdue tickets are flagged, and the clock pauses while a ticket is waiting on the user.
-- **Smart replies.** When the requester replies, a ticket that was *waiting* goes back to *in progress*, and a *resolved* ticket is reopened.
-- **Internal notes** that only IT staff can read or write, highlighted in the conversation.
-- **"Assign to me"** to take ownership of a ticket in one click.
-- **Search and filters**: search by text or ticket number (`HD-0042`); filter by status, priority and category.
-- **Dashboard for IT staff**: active, unassigned and overdue counts, resolution time, % resolved on target, new tickets per day and active tickets by category.
-- **Employee dashboard** showing what is open and what is waiting on them.
-- **Responsive** layout that works on phones.
-- **Realistic demo data**: a fictional company with 11 users and 32 tickets based on everyday IT support issues (account lockouts, VPN, printers, phishing reports, MFA resets…).
+### For employees
+- **Raise tickets** with a priority guide ("How urgent is it?") and **attachments** (screenshots, PDFs, logs).
+- **Knowledge base suggestions while typing**: start typing "VPN not connecting" and the matching how-to article appears *before* the ticket is sent, so many problems are fixed without waiting for IT.
+- **Email and in-app notifications** when IT replies, needs information, or resolves the ticket.
+- **Rate the support** (1–5 stars) once a ticket is resolved.
+- Replying to a resolved ticket **reopens** it automatically.
+
+### For the IT team
+- **Queue views**: all tickets, my queue, unassigned; search by text or ticket number (`HD-0042`); filter by status, priority and category.
+- **Priority-based target times (SLA)**: urgent 2h, high 8h, medium 24h, low 72h. Overdue tickets are flagged, and the clock pauses while waiting on the user.
+- **Activity history** on every ticket: who changed status, priority, assignee or category, and when.
+- **Internal notes** (and internal attachments) the requester never sees.
+- **Saved replies** with placeholders (`{name}`, `{ticket}`, `{agent}`), inserted from the reply box.
+- **"Assign to me"** in one click; notifications when a ticket is assigned to you.
+- **Dashboard**: active, unassigned and overdue counts, average resolution time, % on target, satisfaction, new tickets per day and tickets by category.
+- **Reports** by technician, category, priority and month, plus **CSV export** of any filtered ticket list.
+- **Knowledge base editor** with Markdown, drafts, view counts and "this fixed it" votes.
+
+### For admins
+- **User management**: add users (they get an email link to set their password), change roles and departments.
+- **Leaver process**: deactivating an account signs the user out immediately, blocks future sign-in, and returns their open tickets to the queue while keeping history.
+- **Last sign-in** shown for every account, to spot unused accounts.
 
 ## Screenshots
 
-| Ticket queue | Ticket conversation |
+| Ticket queue | Ticket conversation with history |
 | --- | --- |
 | ![Ticket list](docs/screenshots/tickets.png) | ![Ticket page](docs/screenshots/ticket.png) |
 
-| Raising a ticket | Sign in with demo accounts |
+| Knowledge base suggestions while raising a ticket | Reports |
 | --- | --- |
-| ![New ticket form](docs/screenshots/new-ticket.png) | ![Login page](docs/screenshots/login.png) |
+| ![New ticket form with suggestions](docs/screenshots/new-ticket.png) | ![Reports](docs/screenshots/reports.png) |
+
+| Knowledge base | Sign in with demo accounts |
+| --- | --- |
+| ![Knowledge base](docs/screenshots/knowledge-base.png) | ![Login page](docs/screenshots/login.png) |
+
+## REST API
+
+Create a token on your **Profile** page, then send it as a bearer token. The API uses the same permissions, validation and notifications as the web app, and is limited to 60 requests per minute.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/v1/me` | The authenticated user |
+| `GET` | `/api/v1/tickets` | List tickets you can see. Filters: `status` (`active` or a status), `priority`, `assignee=me`, `per_page` |
+| `POST` | `/api/v1/tickets` | Raise a ticket: `subject`, `category_id`, `priority`, `description` |
+| `GET` | `/api/v1/tickets/{id}` | One ticket with its conversation (internal notes only for staff) |
+| `PATCH` | `/api/v1/tickets/{id}` | Staff only: `status`, `priority`, `assignee_id`, `category_id` |
+| `POST` | `/api/v1/tickets/{id}/comments` | Reply: `body`, `is_internal` (staff only) |
+
+Example: a monitoring script raising an urgent ticket:
+
+```bash
+curl -X POST https://your-helpdesk.example/api/v1/tickets \
+  -H "Authorization: Bearer $TOKEN" -H "Accept: application/json" \
+  -d subject="Disk space low on FILESERVER01" -d category_id=1 \
+  -d priority=urgent -d description="C: drive at 97% (alert from monitoring)"
+```
+
+## Security
+
+- **Authorisation on every request** through [policies](app/Policies) and role middleware; employees can never load another person's ticket, attachment or internal note, whether through the web or the API.
+- **Uploads** are type- and size-checked, stored outside the public folder and only served after a permission check.
+- **Login is rate-limited** (5 failed attempts locks the account for a minute); sign-up and the API are rate-limited too.
+- **Deactivated accounts** are signed out immediately and can't sign in or use API tokens.
+- **Security headers** on every response: Content Security Policy, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and HSTS over HTTPS.
+- **Output escaping** everywhere; knowledge base Markdown is rendered with raw HTML stripped. The CSV export neutralises spreadsheet formulas (CSV injection).
+- **Demo safety**: the shared demo accounts can't have their password or email changed, and the demo database resets nightly.
+- **Dependency audits** (`composer audit`, `npm audit`) run in CI on every push.
 
 ## Running it locally
 
@@ -55,12 +103,18 @@ cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
 php artisan migrate --seed
-php artisan serve
+composer run dev        # app, queue worker and Vite together
 ```
 
 Open http://127.0.0.1:8000 and pick a demo account.
 
-It uses SQLite by default. To use MySQL, set `DB_CONNECTION=mysql` and the `DB_*` settings in `.env`. To hide the demo accounts on a real deployment, set `HELPDESK_DEMO=false`.
+| Setting | Purpose |
+| --- | --- |
+| `DB_CONNECTION=mysql` + `DB_*` | Use MySQL instead of SQLite |
+| `MAIL_MAILER=smtp` + `MAIL_*` | Send real emails (locally they're written to `storage/logs/laravel.log`) |
+| `QUEUE_CONNECTION` | Emails are queued; run `php artisan queue:work` (or use `sync`) |
+| `HELPDESK_DEMO=false` | Hide demo logins and disable the nightly demo reset |
+| `HELPDESK_REGISTRATION=false` | Turn off self sign-up, so only admins create accounts |
 
 ## Tests
 
@@ -68,7 +122,7 @@ It uses SQLite by default. To use MySQL, set `DB_CONNECTION=mysql` and the `DB_*
 php artisan test
 ```
 
-The feature tests in [`tests/Feature`](tests/Feature) cover the access rules (who can see, edit, assign, delete and write internal notes), status changes, SLA logic, search, and that every page renders for each role.
+The tests in [`tests/Feature`](tests/Feature) cover permissions for every role, the ticket lifecycle and target-time logic, notifications (who gets what), attachments, the knowledge base and its suggestions, ratings, user management and the leaver process, reports and CSV export, the API, and the security protections.
 
 ## How it's built
 
@@ -76,18 +130,13 @@ The feature tests in [`tests/Feature`](tests/Feature) cover the access rules (wh
 | --- | --- |
 | Roles, statuses, priorities and target times | [`app/Enums`](app/Enums) (PHP enums) |
 | Data model and relationships | [`app/Models`](app/Models) |
-| Permissions | [`app/Policies/TicketPolicy.php`](app/Policies/TicketPolicy.php) |
+| Permissions | [`app/Policies`](app/Policies), [`app/Http/Middleware`](app/Http/Middleware) |
 | Validation | [`app/Http/Requests`](app/Http/Requests) |
-| Controllers | [`app/Http/Controllers`](app/Http/Controllers) |
+| Who gets notified about what | [`app/Services/TicketNotifier.php`](app/Services/TicketNotifier.php), [`app/Notifications`](app/Notifications) |
+| Metrics for the dashboard and reports | [`app/Services/TicketMetrics.php`](app/Services/TicketMetrics.php) |
+| Web and API controllers | [`app/Http/Controllers`](app/Http/Controllers) |
 | Views and components | [`resources/views`](resources/views) |
-| Demo data | [`database/seeders/DatabaseSeeder.php`](database/seeders/DatabaseSeeder.php) |
-
-## Roadmap
-
-- Email notifications when a ticket is assigned or updated
-- File attachments (screenshots of errors)
-- Knowledge base of common fixes, suggested while raising a ticket
-- CSV export and monthly reports
+| Demo company, tickets and articles | [`database/seeders`](database/seeders) |
 
 ---
 

@@ -49,8 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile', [ProfileController::class, 'update'])->middleware('demo.protect')->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->middleware('demo.protect')->name('profile.destroy');
     Route::post('/profile/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
     Route::delete('/profile/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 });

@@ -257,7 +257,7 @@
             </dl>
 
             @can('delete', $ticket)
-                <form method="POST" action="{{ route('tickets.destroy', $ticket) }}" onsubmit="return confirm('Delete {{ $ticket->reference() }}? This cannot be undone.')">
+                <form method="POST" action="{{ route('tickets.destroy', $ticket) }}" x-data @submit="if (! confirm(@js('Delete '.$ticket->reference().'? This cannot be undone.'))) $event.preventDefault()">
                     @csrf
                     @method('DELETE')
                     <button class="text-sm font-medium text-red-600 hover:text-red-500">Delete ticket</button>

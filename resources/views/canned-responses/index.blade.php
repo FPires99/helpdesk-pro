@@ -14,7 +14,7 @@
                                 <h2 class="font-semibold">{{ $response->title }}</h2>
                                 <div class="flex shrink-0 gap-3 text-sm">
                                     <button @click="editing = true" class="font-medium text-slate-500 hover:text-slate-800">Edit</button>
-                                    <form method="POST" action="{{ route('canned-responses.destroy', $response) }}" onsubmit="return confirm('Delete this saved reply?')">
+                                    <form method="POST" action="{{ route('canned-responses.destroy', $response) }}" x-data @submit="if (! confirm(@js('Delete this saved reply?'))) $event.preventDefault()">
                                         @csrf
                                         @method('DELETE')
                                         <button class="font-medium text-red-600 hover:text-red-500">Delete</button>

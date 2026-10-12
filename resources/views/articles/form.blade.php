@@ -41,7 +41,7 @@
         </form>
 
         @if ($article->exists)
-            <form method="POST" action="{{ route('articles.destroy', $article) }}" class="mt-4 text-right" onsubmit="return confirm('Delete this article?')">
+            <form method="POST" action="{{ route('articles.destroy', $article) }}" class="mt-4 text-right" x-data @submit="if (! confirm(@js('Delete this article?'))) $event.preventDefault()">
                 @csrf
                 @method('DELETE')
                 <button class="text-sm font-medium text-red-600 hover:text-red-500">Delete article</button>

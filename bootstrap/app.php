@@ -14,9 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'staff' => \App\Http\Middleware\EnsureUserIsStaff::class,
+            'demo.protect' => \App\Http\Middleware\ProtectDemoAccounts::class,
         ]);
         $middleware->web(append: [
             \App\Http\Middleware\EnsureUserIsActive::class,
+            \App\Http\Middleware\SecurityHeaders::class,
+        ]);
+        $middleware->api(append: [
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
