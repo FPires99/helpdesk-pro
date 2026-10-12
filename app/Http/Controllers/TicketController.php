@@ -8,6 +8,7 @@ use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Models\Category;
 use App\Models\Ticket;
+use App\Models\TicketEvent;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,15 +75,21 @@ class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->load(['requester', 'assignee', 'category', 'comments.author']);
+        $ticket->load(['requester', 'assignee', 'category', 'comments.author', 'events.actor']);
 
         $comments = $request->user()->isStaff()
             ? $ticket->comments
             : $ticket->comments->reject->is_internal;
 
+        // Replies and changes in one chronological timeline ("raised" is shown in the header card).
+        $timeline = $comments->toBase()
+            ->concat($ticket->events->where('type', '!=', TicketEvent::CREATED))
+            ->sortBy(fn ($item) => [$item->created_at->getTimestamp(), $item instanceof TicketEvent ? 0 : 1])
+            ->values();
+
         return view('tickets.show', [
             'ticket' => $ticket,
-            'comments' => $comments,
+            'timeline' => $timeline,
             'categories' => Category::orderBy('name')->get(),
             'statuses' => TicketStatus::cases(),
             'priorities' => TicketPriority::cases(),

@@ -49,8 +49,21 @@
             <section id="comments" class="space-y-4">
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Activity</h2>
 
-                @forelse ($comments as $comment)
-                    @php $fromStaff = $comment->author->isStaff(); @endphp
+                @forelse ($timeline as $item)
+                    @if ($item instanceof \App\Models\TicketEvent)
+                        <div class="flex items-center gap-3 px-2 text-sm text-slate-500">
+                            <span class="flex h-8 w-8 shrink-0 items-center justify-center">
+                                <span class="h-2 w-2 rounded-full bg-slate-300"></span>
+                            </span>
+                            <p>
+                                <span class="font-medium text-slate-700">{{ $item->actor?->name ?? 'System' }}</span>
+                                {{ $item->description() }}
+                                <time class="text-slate-400" datetime="{{ $item->created_at->toIso8601String() }}" title="{{ $item->created_at->format('j M Y, H:i') }}">· {{ $item->created_at->diffForHumans() }}</time>
+                            </p>
+                        </div>
+                        @continue
+                    @endif
+                    @php $comment = $item; $fromStaff = $comment->author->isStaff(); @endphp
                     <div @class([
                         'flex gap-3 rounded-xl border p-4',
                         'border-amber-200 bg-amber-50' => $comment->is_internal,

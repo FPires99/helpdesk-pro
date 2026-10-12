@@ -8,6 +8,7 @@ use App\Enums\TicketStatus;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Ticket;
+use App\Models\TicketEvent;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -134,7 +135,9 @@ class DatabaseSeeder extends Seeder
             ]);
             $ticket->created_at = $createdAt;
             $ticket->updated_at = $createdAt;
-            $ticket->save();
+            // History is written below with realistic timestamps, so skip the automatic events.
+            Ticket::withoutEvents(fn () => $ticket->save());
+            $this->event($ticket, $requester, TicketEvent::CREATED, null, null, $createdAt);
 
             $responder = $assignee ?? $staff->random();
             // First response 10-90 minutes after opening, but never in the future.
@@ -143,11 +146,17 @@ class DatabaseSeeder extends Seeder
                 $first = $createdAt->copy()->addSeconds((int) ($createdAt->diffInSeconds(now()) / 2));
             }
 
+            if ($assignee) {
+                $this->event($ticket, $assignee, TicketEvent::ASSIGNEE, null, (string) $assignee->id, $first);
+            }
             if ($status !== TicketStatus::Open) {
+                $this->event($ticket, $responder, TicketEvent::STATUS, 'open', 'in_progress', $first);
                 $this->comment($ticket, $responder, 'Thanks, I\'m looking into this now.', $first);
             }
             if ($status === TicketStatus::Waiting) {
-                $this->comment($ticket, $responder, 'Could you let me know when you\'re at your desk so I can connect remotely?', $first->copy()->addSeconds((int) ($first->diffInSeconds(now()) / 2)));
+                $askedAt = $first->copy()->addSeconds((int) ($first->diffInSeconds(now()) / 2));
+                $this->comment($ticket, $responder, 'Could you let me know when you\'re at your desk so I can connect remotely?', $askedAt);
+                $this->event($ticket, $responder, TicketEvent::STATUS, 'in_progress', 'waiting', $askedAt);
             }
             if ($status === TicketStatus::InProgress) {
                 $this->comment($ticket, $responder, 'Checked the event logs; narrowing down the cause.', $first->copy()->addSeconds((int) ($first->diffInSeconds(now()) / 2)), internal: true);
@@ -155,10 +164,23 @@ class DatabaseSeeder extends Seeder
             if ($reply !== null) {
                 $resolvedAt = $first->copy()->addMinutes(mt_rand(30, (int) ($ticket->priority->slaHours() * 60 * 1.2)));
                 $this->comment($ticket, $responder, $reply, $resolvedAt);
+                $this->event($ticket, $responder, TicketEvent::STATUS, 'in_progress', 'resolved', $resolvedAt);
                 $this->comment($ticket, $requester, 'Working now, thank you!', $resolvedAt->copy()->addMinutes(mt_rand(5, 60)));
                 $ticket->forceFill(['resolved_at' => $resolvedAt, 'updated_at' => $resolvedAt])->saveQuietly();
+                if ($status === TicketStatus::Closed) {
+                    $this->event($ticket, $responder, TicketEvent::STATUS, 'resolved', 'closed', $resolvedAt->copy()->addHours(2));
+                }
             }
         }
+    }
+
+    private function event(Ticket $ticket, User $actor, string $type, ?string $from, ?string $to, Carbon $at): void
+    {
+        $event = new TicketEvent(['user_id' => $actor->id, 'type' => $type, 'from' => $from, 'to' => $to]);
+        $event->ticket_id = $ticket->id;
+        $event->created_at = $at;
+        $event->updated_at = $at;
+        $event->save();
     }
 
     private function comment(Ticket $ticket, User $author, string $body, Carbon $at, bool $internal = false): void

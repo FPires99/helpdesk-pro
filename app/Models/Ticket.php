@@ -44,6 +44,30 @@ class Ticket extends Model
             }
             $ticket->resolved_at = $ticket->status->isActive() ? null : ($ticket->resolved_at ?? now());
         });
+
+        // Activity history.
+        static::created(function (Ticket $ticket) {
+            $ticket->events()->create(['user_id' => $ticket->user_id, 'type' => TicketEvent::CREATED]);
+        });
+
+        static::updated(function (Ticket $ticket) {
+            foreach (TicketEvent::TRACKED as $column => $type) {
+                if (! $ticket->wasChanged($column)) {
+                    continue;
+                }
+                $ticket->events()->create([
+                    'user_id' => auth()->id(),
+                    'type' => $type,
+                    'from' => self::rawValue($ticket->getOriginal($column)),
+                    'to' => self::rawValue($ticket->getAttribute($column)),
+                ]);
+            }
+        });
+    }
+
+    private static function rawValue(mixed $value): ?string
+    {
+        return $value instanceof \BackedEnum ? $value->value : ($value === null ? null : (string) $value);
     }
 
     public function requester(): BelongsTo
@@ -64,6 +88,11 @@ class Ticket extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class)->oldest();
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(TicketEvent::class)->oldest();
     }
 
     /** Ticket number shown to users, e.g. HD-0042. */
