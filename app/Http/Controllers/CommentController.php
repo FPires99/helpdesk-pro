@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\TicketStatus;
 use App\Http\Requests\StoreCommentRequest;
 use App\Models\Attachment;
 use App\Models\Ticket;
@@ -25,18 +24,7 @@ class CommentController extends Controller
             Attachment::store($file, $ticket, $user, $comment);
         }
 
-        // A reply from the requester moves the ticket back into the support queue.
-        if ($user->id === $ticket->user_id && ! $user->isStaff()) {
-            $next = match ($ticket->status) {
-                TicketStatus::Waiting => TicketStatus::InProgress,
-                TicketStatus::Resolved, TicketStatus::Closed => TicketStatus::Open,
-                default => null,
-            };
-            if ($next) {
-                $ticket->update(['status' => $next]);
-            }
-        }
-
+        $ticket->registerReplyFrom($user);
         $ticket->touch();
         $notifier->replied($comment);
 

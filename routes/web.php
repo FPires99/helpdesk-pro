@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CannedResponseController;
@@ -50,6 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
+    Route::delete('/profile/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 });
 
 require __DIR__.'/auth.php';

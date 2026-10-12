@@ -15,6 +15,12 @@ class Ticket extends Model
 {
     use HasFactory;
 
+    /** Defaults for new tickets (match the database defaults). */
+    protected $attributes = [
+        'status' => 'open',
+        'priority' => 'medium',
+    ];
+
     protected $fillable = [
         'user_id',
         'assignee_id',
@@ -107,6 +113,24 @@ class Ticket extends Model
     public function events(): HasMany
     {
         return $this->hasMany(TicketEvent::class)->oldest();
+    }
+
+    /** A reply from the requester moves the ticket back into the support queue. */
+    public function registerReplyFrom(User $user): void
+    {
+        if ($user->id !== $this->user_id || $user->isStaff()) {
+            return;
+        }
+
+        $next = match ($this->status) {
+            TicketStatus::Waiting => TicketStatus::InProgress,
+            TicketStatus::Resolved, TicketStatus::Closed => TicketStatus::Open,
+            default => null,
+        };
+
+        if ($next) {
+            $this->update(['status' => $next]);
+        }
     }
 
     /** Ticket number shown to users, e.g. HD-0042. */
