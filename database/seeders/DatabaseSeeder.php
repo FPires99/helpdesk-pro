@@ -31,7 +31,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         mt_srand(42);
-        fake()->seed(42);
 
         $password = Hash::make('password');
         $person = fn (string $name, string $email, Role $role, string $department) => User::create([

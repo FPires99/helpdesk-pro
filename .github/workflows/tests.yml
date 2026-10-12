@@ -41,3 +41,9 @@ jobs:
         run: |
           composer audit
           npm audit --omit=dev --audit-level=high
+
+      - name: Demo data loads in a production install (no dev packages)
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist --no-progress
+          touch database/database.sqlite
+          APP_ENV=production php artisan migrate:fresh --seed --force
