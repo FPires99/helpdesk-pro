@@ -47,6 +47,41 @@
                 <x-attachment-list :attachments="$ticket->attachments->whereNull('comment_id')" class="mt-4" />
             </article>
 
+            @can('rate', $ticket)
+                <form method="POST" action="{{ route('tickets.rate', $ticket) }}" x-data="{ rating: 0, hover: 0 }"
+                      class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6">
+                    @csrf
+                    <h2 class="font-semibold text-emerald-900">How did we do?</h2>
+                    <p class="mt-1 text-sm text-emerald-800">Your ticket is resolved. Rate the support you received.</p>
+                    <div class="mt-4 flex gap-1" @mouseleave="hover = 0">
+                        @for ($i = 1; $i <= 5; $i++)
+                            <label class="cursor-pointer" @mouseenter="hover = {{ $i }}">
+                                <input type="radio" name="rating" value="{{ $i }}" x-model.number="rating" class="sr-only" required>
+                                <svg class="h-9 w-9 transition" :class="(hover || rating) >= {{ $i }} ? 'text-amber-400' : 'text-slate-300'" viewBox="0 0 20 20" fill="currentColor"><path d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z"/></svg>
+                                <span class="sr-only">{{ $i }} {{ Str::plural('star', $i) }}</span>
+                            </label>
+                        @endfor
+                    </div>
+                    <div x-show="rating" x-cloak class="mt-4 space-y-3">
+                        <textarea name="rating_comment" rows="2" maxlength="1000" placeholder="Anything we could do better? (optional)"
+                                  class="block w-full rounded-lg border-emerald-200 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"></textarea>
+                        <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Send feedback</button>
+                    </div>
+                </form>
+            @endcan
+
+            @if ($ticket->rating)
+                <div class="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <x-stars :rating="$ticket->rating" />
+                    <div class="text-sm">
+                        <p class="font-semibold">{{ $ticket->requester->name }} rated this support {{ $ticket->rating }}/5</p>
+                        @if ($ticket->rating_comment)
+                            <p class="mt-1 text-slate-600">“{{ $ticket->rating_comment }}”</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <section id="comments" class="space-y-4">
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Activity</h2>
 

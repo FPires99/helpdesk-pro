@@ -24,6 +24,9 @@ class Ticket extends Model
         'status',
         'priority',
         'resolved_at',
+        'rating',
+        'rating_comment',
+        'rated_at',
     ];
 
     protected function casts(): array
@@ -32,6 +35,7 @@ class Ticket extends Model
             'status' => TicketStatus::class,
             'priority' => TicketPriority::class,
             'resolved_at' => 'datetime',
+            'rated_at' => 'datetime',
         ];
     }
 

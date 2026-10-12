@@ -178,6 +178,20 @@ class DatabaseSeeder extends Seeder
                 if ($status === TicketStatus::Closed) {
                     $this->event($ticket, $responder, TicketEvent::STATUS, 'resolved', 'closed', $resolvedAt->copy()->addHours(2));
                 }
+
+                // Most people rate the support. Leave one of the demo employee's tickets unrated to try it out.
+                $unratedForDemo = $subject === 'Request: update Chrome';
+                if (! $unratedForDemo && mt_rand(1, 4) > 1) {
+                    [$stars, $feedback] = collect([
+                        [5, 'Super quick, thank you!'], [5, null], [5, 'Sam explained everything clearly.'], [5, null],
+                        [4, null], [4, 'Fixed, but took a while to hear back.'], [3, 'Had to chase this one.'], [2, 'Took two days and I had to explain the problem twice.'],
+                    ])->random();
+                    $ratedAt = $resolvedAt->copy()->addHours(mt_rand(1, 20));
+                    if ($ratedAt->isPast()) {
+                        $ticket->forceFill(['rating' => $stars, 'rating_comment' => $feedback, 'rated_at' => $ratedAt])->saveQuietly();
+                        $this->event($ticket, $requester, TicketEvent::RATED, null, (string) $stars, $ratedAt);
+                    }
+                }
             }
         }
 

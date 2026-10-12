@@ -130,6 +130,21 @@ class TicketController extends Controller
         return back()->with('status', "You're now handling {$ticket->reference()}.");
     }
 
+    public function rate(Request $request, Ticket $ticket): RedirectResponse
+    {
+        Gate::authorize('rate', $ticket);
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'rating_comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $ticket->update($data + ['rated_at' => now()]);
+        $ticket->events()->create(['user_id' => $request->user()->id, 'type' => TicketEvent::RATED, 'to' => (string) $data['rating']]);
+
+        return back()->with('status', 'Thanks for your feedback!');
+    }
+
     public function destroy(Ticket $ticket): RedirectResponse
     {
         Gate::authorize('delete', $ticket);

@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('tickets', TicketController::class)->except(['edit']);
     Route::post('/tickets/{ticket}/assign-to-me', [TicketController::class, 'assignToMe'])->name('tickets.assign-to-me');
+    Route::post('/tickets/{ticket}/rating', [TicketController::class, 'rate'])->name('tickets.rate');
     Route::post('/tickets/{ticket}/comments', [CommentController::class, 'store'])->name('tickets.comments.store');
 
     Route::get('/kb/suggest', [ArticleController::class, 'suggest'])->name('articles.suggest');

@@ -40,6 +40,14 @@ class DashboardController extends Controller
                 fn ($t) => $t->resolved_at->lte($t->created_at->copy()->addHours($t->priority->slaHours()))
             )->count() / $resolvedRecently->count());
 
+        // Satisfaction over the last 30 days.
+        $ratings = Ticket::whereNotNull('rating')->where('rated_at', '>=', now()->subDays(30))->pluck('rating');
+        $satisfaction = $ratings->isEmpty() ? null : [
+            'average' => round($ratings->avg(), 1),
+            'happy' => (int) round(100 * $ratings->filter(fn ($r) => $r >= 4)->count() / $ratings->count()),
+            'count' => $ratings->count(),
+        ];
+
         // Tickets created per day over the last 14 days.
         $since = now()->subDays(13)->startOfDay();
         $created = Ticket::where('created_at', '>=', $since)->pluck('created_at')
@@ -54,9 +62,10 @@ class DashboardController extends Controller
             'activeCount' => $active->count(),
             'unassignedCount' => $active->whereNull('assignee_id')->count(),
             'overdueCount' => $active->filter->isOverdue()->count(),
-            'resolvedThisWeek' => Ticket::where('resolved_at', '>=', now()->startOfWeek())->count(),
+            'resolvedLastWeek' => Ticket::where('resolved_at', '>=', now()->subDays(7))->count(),
             'avgHours' => $avgHours,
             'withinSla' => $withinSla,
+            'satisfaction' => $satisfaction,
             'perDay' => $perDay,
             'byCategory' => Category::withCount(['tickets' => fn ($q) => $q->active()])
                 ->orderByDesc('tickets_count')->get(),

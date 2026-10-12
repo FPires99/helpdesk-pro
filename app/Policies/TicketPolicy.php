@@ -40,6 +40,14 @@ class TicketPolicy
         return $user->isStaff();
     }
 
+    /** The requester can rate the support once, after the ticket is resolved. */
+    public function rate(User $user, Ticket $ticket): bool
+    {
+        return $ticket->user_id === $user->id
+            && ! $ticket->status->isActive()
+            && $ticket->rating === null;
+    }
+
     public function delete(User $user, Ticket $ticket): bool
     {
         return $user->isAdmin();
