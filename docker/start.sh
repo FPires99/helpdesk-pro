@@ -7,6 +7,12 @@ if [ -z "$APP_KEY" ]; then
   exit 1
 fi
 
+# Render generates a plain random secret; Laravel needs a "base64:" 32-byte key, so derive one from it.
+case "$APP_KEY" in
+  base64:*) ;;
+  *) APP_KEY=$(php -r 'echo "base64:".base64_encode(hash("sha256", getenv("APP_KEY"), true));'); export APP_KEY ;;
+esac
+
 touch database/database.sqlite
 php artisan migrate:fresh --seed --force
 php artisan storage:link >/dev/null 2>&1 || true
