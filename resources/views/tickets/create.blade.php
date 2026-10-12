@@ -14,7 +14,7 @@
         <h1 class="mt-3 text-2xl font-bold tracking-tight">Raise a new ticket</h1>
         <p class="mt-1 text-sm text-slate-500">Tell us what's wrong and the IT team will get back to you.</p>
 
-        <form method="POST" action="{{ route('tickets.store') }}" class="mt-8 space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <form method="POST" action="{{ route('tickets.store') }}" enctype="multipart/form-data" class="mt-8 space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div>
                 <label for="subject" class="text-sm font-semibold">Subject</label>
                 <input id="subject" name="subject" type="text" value="{{ old('subject') }}" required maxlength="150" autofocus
@@ -55,6 +55,12 @@
                 <textarea id="description" name="description" rows="7" required maxlength="5000" class="{{ $field }}"
                           placeholder="What happened? When did it start? Any error messages? What have you already tried?">{{ old('description') }}</textarea>
                 <x-input-error :messages="$errors->get('description')" class="mt-2" />
+            </div>
+
+            <div>
+                <p class="text-sm font-semibold">Screenshots or files <span class="font-normal text-slate-500">(optional)</span></p>
+                <p class="mt-0.5 text-xs text-slate-500">A screenshot of the error message helps a lot. Up to 5 files, 5 MB each.</p>
+                <x-file-input class="mt-2" />
             </div>
 
             <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-6">

@@ -6,6 +6,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateTicketRequest;
+use App\Models\Attachment;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketEvent;
@@ -65,7 +66,10 @@ class TicketController extends Controller
 
     public function store(StoreTicketRequest $request, TicketNotifier $notifier): RedirectResponse
     {
-        $ticket = $request->user()->tickets()->create($request->validated());
+        $ticket = $request->user()->tickets()->create($request->safe()->except('attachments'));
+        foreach ($request->file('attachments', []) as $file) {
+            Attachment::store($file, $ticket, $request->user());
+        }
         $notifier->created($ticket);
 
         return redirect()
@@ -77,7 +81,7 @@ class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->load(['requester', 'assignee', 'category', 'comments.author', 'events.actor']);
+        $ticket->load(['requester', 'assignee', 'category', 'comments.author', 'comments.attachments', 'events.actor', 'attachments']);
 
         $comments = $request->user()->isStaff()
             ? $ticket->comments

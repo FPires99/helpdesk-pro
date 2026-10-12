@@ -45,6 +45,11 @@ class Ticket extends Model
             $ticket->resolved_at = $ticket->status->isActive() ? null : ($ticket->resolved_at ?? now());
         });
 
+        // Remove uploaded files along with the ticket (the database rows cascade).
+        static::deleting(function (Ticket $ticket) {
+            $ticket->attachments->each->delete();
+        });
+
         // Activity history.
         static::created(function (Ticket $ticket) {
             $ticket->events()->create(['user_id' => $ticket->user_id, 'type' => TicketEvent::CREATED]);
@@ -88,6 +93,11 @@ class Ticket extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class)->oldest();
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class);
     }
 
     public function events(): HasMany

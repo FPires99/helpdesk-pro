@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\TicketStatus;
 use App\Http\Requests\StoreCommentRequest;
+use App\Models\Attachment;
 use App\Models\Ticket;
 use App\Services\TicketNotifier;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,9 @@ class CommentController extends Controller
             'body' => $request->validated('body'),
             'is_internal' => $internal,
         ]);
+        foreach ($request->file('attachments', []) as $file) {
+            Attachment::store($file, $ticket, $user, $comment);
+        }
 
         // A reply from the requester moves the ticket back into the support queue.
         if ($user->id === $ticket->user_id && ! $user->isStaff()) {

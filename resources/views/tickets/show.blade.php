@@ -44,6 +44,7 @@
                     </div>
                 </div>
                 <p class="mt-4 whitespace-pre-line text-slate-700">{{ $ticket->description }}</p>
+                <x-attachment-list :attachments="$ticket->attachments->whereNull('comment_id')" class="mt-4" />
             </article>
 
             <section id="comments" class="space-y-4">
@@ -86,6 +87,7 @@
                                 <time class="text-slate-500" datetime="{{ $comment->created_at->toIso8601String() }}" title="{{ $comment->created_at->format('j M Y, H:i') }}">{{ $comment->created_at->diffForHumans() }}</time>
                             </p>
                             <p class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ $comment->body }}</p>
+                            <x-attachment-list :attachments="$comment->attachments" class="mt-3" />
                         </div>
                     </div>
                 @empty
@@ -94,13 +96,14 @@
 
                 {{-- Reply box --}}
                 @can('comment', $ticket)
-                    <form method="POST" action="{{ route('tickets.comments.store', $ticket) }}" x-data="{ internal: {{ old('is_internal') ? 'true' : 'false' }} }"
+                    <form method="POST" action="{{ route('tickets.comments.store', $ticket) }}" enctype="multipart/form-data" x-data="{ internal: {{ old('is_internal') ? 'true' : 'false' }} }"
                           class="rounded-xl border bg-white p-4 shadow-sm" :class="internal ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'">
                         @csrf
                         <label for="body" class="sr-only">Reply</label>
                         <textarea id="body" name="body" rows="4" required maxlength="5000" class="block w-full resize-y rounded-lg border-0 p-0 text-sm focus:ring-0"
                                   :placeholder="internal ? 'Write an internal note (only IT can see this)…' : 'Write a reply…'">{{ old('body') }}</textarea>
                         <x-input-error :messages="$errors->get('body')" class="mt-2" />
+                        <x-file-input class="mt-3" />
                         <div class="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
                             @can('addInternalNote', $ticket)
                                 <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">

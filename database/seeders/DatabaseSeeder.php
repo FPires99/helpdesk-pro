@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\Role;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Models\Attachment;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Ticket;
@@ -17,6 +18,7 @@ use App\Notifications\TicketReplied;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -178,6 +180,22 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        // A screenshot of the error on one ticket, to show attachments.
+        Storage::disk(Attachment::DISK)->deleteDirectory('attachments');
+        $buggy = Ticket::where('subject', 'like', 'Accounting software%')->first();
+        if ($buggy && function_exists('imagecreatetruecolor')) {
+            $path = "attachments/{$buggy->id}/accounting-error.png";
+            Storage::disk(Attachment::DISK)->put($path, $this->errorScreenshot());
+            Attachment::create([
+                'ticket_id' => $buggy->id,
+                'user_id' => $buggy->user_id,
+                'original_name' => 'accounting-error.png',
+                'path' => $path,
+                'mime_type' => 'image/png',
+                'size' => Storage::disk(Attachment::DISK)->size($path),
+            ]);
+        }
+
         // A few unread notifications for the demo accounts.
         $tech = $technicians->first();
         foreach (Ticket::active()->latest()->take(3)->get() as $ticket) {
@@ -192,6 +210,37 @@ class DatabaseSeeder extends Seeder
                 $this->notify($demoEmployee, new TicketReplied($reply), $reply->created_at, read: ! $ticket->status->isActive());
             }
         }
+    }
+
+    /** Draws a simple Windows-style error dialog as a PNG. */
+    private function errorScreenshot(): string
+    {
+        $img = imagecreatetruecolor(640, 260);
+        $white = imagecolorallocate($img, 255, 255, 255);
+        $grey = imagecolorallocate($img, 240, 240, 240);
+        $border = imagecolorallocate($img, 200, 200, 200);
+        $text = imagecolorallocate($img, 30, 30, 30);
+        $red = imagecolorallocate($img, 220, 50, 50);
+        $blue = imagecolorallocate($img, 0, 103, 192);
+
+        imagefill($img, 0, 0, $white);
+        imagefilledrectangle($img, 0, 0, 639, 34, $grey);
+        imageline($img, 0, 34, 639, 34, $border);
+        imagestring($img, 4, 14, 10, 'Accounting Suite', $text);
+        imagefilledellipse($img, 60, 110, 46, 46, $red);
+        imagestring($img, 5, 54, 102, 'X', $white);
+        imagestring($img, 5, 100, 88, 'The application failed to start.', $text);
+        imagestring($img, 3, 100, 112, 'Error 0xc000007b: a required component (MSVCP140.dll)', $text);
+        imagestring($img, 3, 100, 128, 'could not be loaded after the latest update.', $text);
+        imagefilledrectangle($img, 520, 200, 620, 232, $blue);
+        imagestring($img, 4, 557, 208, 'OK', $white);
+        imagerectangle($img, 0, 0, 639, 259, $border);
+
+        ob_start();
+        imagepng($img);
+        imagedestroy($img);
+
+        return (string) ob_get_clean();
     }
 
     /** Store an in-app notification directly (no email) so the demo bell has something in it. */
