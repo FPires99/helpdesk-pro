@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
@@ -16,6 +17,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('tickets', TicketController::class)->except(['edit']);
     Route::post('/tickets/{ticket}/assign-to-me', [TicketController::class, 'assignToMe'])->name('tickets.assign-to-me');
     Route::post('/tickets/{ticket}/comments', [CommentController::class, 'store'])->name('tickets.comments.store');
+
+    Route::get('/kb/suggest', [ArticleController::class, 'suggest'])->name('articles.suggest');
+    Route::post('/kb/{article}/helpful', [ArticleController::class, 'helpful'])->name('articles.helpful');
+    Route::resource('kb', ArticleController::class)->parameters(['kb' => 'article'])->names('articles');
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
 

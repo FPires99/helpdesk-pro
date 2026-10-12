@@ -180,6 +180,8 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        $this->call(ArticleSeeder::class);
+
         // A screenshot of the error on one ticket, to show attachments.
         Storage::disk(Attachment::DISK)->deleteDirectory('attachments');
         $buggy = Ticket::where('subject', 'like', 'Accounting software%')->first();

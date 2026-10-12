@@ -15,11 +15,37 @@
         <p class="mt-1 text-sm text-slate-500">Tell us what's wrong and the IT team will get back to you.</p>
 
         <form method="POST" action="{{ route('tickets.store') }}" enctype="multipart/form-data" class="mt-8 space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div>
+            <div x-data="{
+                    suggestions: [],
+                    async lookup(q) {
+                        if (q.length < 4) { this.suggestions = []; return; }
+                        const res = await fetch('{{ route('articles.suggest') }}?q=' + encodeURIComponent(q), { headers: { Accept: 'application/json' } });
+                        this.suggestions = res.ok ? await res.json() : [];
+                    },
+                }">
                 <label for="subject" class="text-sm font-semibold">Subject</label>
-                <input id="subject" name="subject" type="text" value="{{ old('subject') }}" required maxlength="150" autofocus
+                <input id="subject" name="subject" type="text" value="{{ old('subject') }}" required maxlength="150" autofocus autocomplete="off"
+                       @input.debounce.400ms="lookup($event.target.value)"
                        placeholder="e.g. Outlook keeps asking for my password" class="{{ $field }}">
                 <x-input-error :messages="$errors->get('subject')" class="mt-2" />
+
+                {{-- Knowledge base suggestions: many problems can be fixed without waiting for IT. --}}
+                <div x-show="suggestions.length" x-transition x-cloak class="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/60 p-4">
+                    <p class="flex items-center gap-2 text-sm font-semibold text-indigo-900">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
+                        These articles might fix it straight away
+                    </p>
+                    <ul class="mt-2 space-y-2">
+                        <template x-for="article in suggestions" :key="article.url">
+                            <li>
+                                <a :href="article.url" target="_blank" class="block rounded-md bg-white px-3 py-2 ring-1 ring-indigo-100 hover:ring-indigo-300">
+                                    <span class="block text-sm font-semibold text-slate-900" x-text="article.title"></span>
+                                    <span class="block text-xs text-slate-500" x-text="article.excerpt"></span>
+                                </a>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
             </div>
 
             <div>
