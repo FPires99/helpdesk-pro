@@ -30,6 +30,12 @@ class User extends Authenticatable
         'is_active',
     ];
 
+    /** Defaults for new users (match the database defaults). */
+    protected $attributes = [
+        'role' => 'employee',
+        'is_active' => true,
+    ];
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -52,6 +58,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'is_active' => 'boolean',
+            'last_login_at' => 'datetime',
         ];
     }
 

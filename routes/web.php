@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CannedResponseController;
@@ -31,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['saved-replies' => 'cannedResponse'])
             ->names('canned-responses');
+    });
+
+    Route::middleware('staff:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', UserController::class)->except(['show', 'destroy']);
     });
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

@@ -60,6 +60,14 @@ class DatabaseSeeder extends Seeder
         ]);
         $staff = $technicians->push($admin);
 
+        // A leaver whose account has been deactivated; their history stays.
+        $person('Chris Doyle', 'chris@helpdesk.test', Role::Employee, 'Sales')->update(['is_active' => false]);
+
+        // Realistic "last sign-in" times.
+        User::where('is_active', true)->get()->each(fn (User $u) => $u->forceFill([
+            'last_login_at' => now()->subMinutes(mt_rand(5, 60 * 24 * 6)),
+        ])->saveQuietly());
+
         $categories = collect([
             ['Hardware', 'hardware', 'cpu'],
             ['Software', 'software', 'app'],
