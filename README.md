@@ -90,6 +90,14 @@ curl -X POST https://your-helpdesk.example/api/v1/tickets \
 - **Demo safety**: the shared demo accounts can't have their password or email changed, and the demo database resets nightly.
 - **Dependency audits** (`composer audit`, `npm audit`) run in CI on every push.
 
+## Deploying a demo
+
+The repo includes a [`Dockerfile`](Dockerfile) and a [`render.yaml`](render.yaml) blueprint for Render's free plan:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/FPires99/helpdesk-pro)
+
+The container serves the app with FrankenPHP and builds a fresh SQLite demo database every time it starts, so there's no external database to manage. On the free plan the service sleeps when idle, and the first visit after that takes around 30–60 seconds while it wakes up.
+
 ## Running it locally
 
 Requirements: PHP 8.2+, Composer and Node.js 18+.

@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Hosting platforms (e.g. Render) terminate HTTPS at a proxy; trust it so URLs are generated as https.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'staff' => \App\Http\Middleware\EnsureUserIsStaff::class,
             'demo.protect' => \App\Http\Middleware\ProtectDemoAccounts::class,
