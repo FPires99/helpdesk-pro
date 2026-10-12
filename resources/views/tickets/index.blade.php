@@ -15,10 +15,18 @@
             <h1 class="text-2xl font-bold tracking-tight">{{ $heading }}</h1>
             <p class="mt-1 text-sm text-slate-500">{{ $tickets->total() }} {{ Str::plural('ticket', $tickets->total()) }}</p>
         </div>
-        <a href="{{ route('tickets.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            New ticket
-        </a>
+        <div class="flex gap-2">
+            @if ($isStaff)
+                <a href="{{ route('tickets.export', request()->query()) }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50" title="Download these tickets as a CSV file">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                    Export CSV
+                </a>
+            @endif
+            <a href="{{ route('tickets.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                New ticket
+            </a>
+        </div>
     </div>
 
     {{-- Filters --}}

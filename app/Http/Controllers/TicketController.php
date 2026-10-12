@@ -12,11 +12,14 @@ use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketEvent;
 use App\Models\User;
+use App\Services\TicketMetrics;
 use App\Services\TicketNotifier;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TicketController extends Controller
 {
@@ -25,10 +28,64 @@ class TicketController extends Controller
         $user = $request->user();
         $filters = $request->only(['q', 'status', 'priority', 'category', 'view']);
 
-        $tickets = Ticket::query()
-            ->visibleTo($user)
+        $tickets = $this->filteredQuery($request)
             ->with(['requester', 'assignee', 'category'])
             ->withCount(['comments' => fn ($q) => $user->isStaff() ? $q : $q->where('is_internal', false)])
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('tickets.index', [
+            'tickets' => $tickets,
+            'filters' => $filters,
+            'categories' => Category::orderBy('name')->get(),
+            'statuses' => TicketStatus::cases(),
+            'priorities' => TicketPriority::cases(),
+        ]);
+    }
+
+    /** Export the tickets matching the current filters as CSV (opens in Excel). */
+    public function export(Request $request): StreamedResponse
+    {
+        $tickets = $this->filteredQuery($request)->with(['requester', 'assignee', 'category'])->oldest()->get();
+
+        return response()->streamDownload(function () use ($tickets) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Ticket', 'Subject', 'Status', 'Priority', 'Category', 'Requester', 'Department', 'Assignee', 'Created', 'Resolved', 'Hours to resolve', 'Within target', 'Rating']);
+            foreach ($tickets as $t) {
+                fputcsv($out, [
+                    $t->reference(),
+                    self::csvSafe($t->subject),
+                    $t->status->label(),
+                    $t->priority->label(),
+                    $t->category->name,
+                    self::csvSafe($t->requester->name),
+                    $t->requester->department,
+                    $t->assignee?->name,
+                    $t->created_at->format('Y-m-d H:i'),
+                    $t->resolved_at?->format('Y-m-d H:i'),
+                    TicketMetrics::resolutionHours($t),
+                    $t->resolved_at ? (TicketMetrics::withinTarget($t) ? 'Yes' : 'No') : null,
+                    $t->rating,
+                ]);
+            }
+            fclose($out);
+        }, 'tickets-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Stop spreadsheet apps treating user text as a formula (CSV injection). */
+    private static function csvSafe(?string $value): ?string
+    {
+        return $value !== null && preg_match('/^[=+\-@\t\r]/', $value) ? "'".$value : $value;
+    }
+
+    private function filteredQuery(Request $request): Builder
+    {
+        $user = $request->user();
+        $filters = $request->only(['q', 'status', 'priority', 'category', 'view']);
+
+        return Ticket::query()
+            ->visibleTo($user)
             ->when($filters['q'] ?? null, function ($query, string $search) {
                 // "HD-0042" or "42" also finds the ticket by its number.
                 $id = preg_match('/^(?:HD-)?0*(\d+)$/i', trim($search), $m) ? (int) $m[1] : null;
@@ -43,18 +100,7 @@ class TicketController extends Controller
             ->when($filters['priority'] ?? null, fn ($q, $priority) => $q->where('priority', $priority))
             ->when($filters['category'] ?? null, fn ($q, $category) => $q->where('category_id', $category))
             ->when($user->isStaff() && ($filters['view'] ?? null) === 'mine', fn ($q) => $q->where('assignee_id', $user->id))
-            ->when($user->isStaff() && ($filters['view'] ?? null) === 'unassigned', fn ($q) => $q->whereNull('assignee_id')->active())
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
-
-        return view('tickets.index', [
-            'tickets' => $tickets,
-            'filters' => $filters,
-            'categories' => Category::orderBy('name')->get(),
-            'statuses' => TicketStatus::cases(),
-            'priorities' => TicketPriority::cases(),
-        ]);
+            ->when($user->isStaff() && ($filters['view'] ?? null) === 'unassigned', fn ($q) => $q->whereNull('assignee_id')->active());
     }
 
     public function create(): View

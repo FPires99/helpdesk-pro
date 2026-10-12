@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\TicketStatus;
 use App\Models\Category;
 use App\Models\Ticket;
+use App\Services\TicketMetrics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -28,25 +29,8 @@ class DashboardController extends Controller
 
         $active = Ticket::active()->with(['requester', 'assignee', 'category'])->get();
 
-        $resolvedRecently = Ticket::whereNotNull('resolved_at')
-            ->where('resolved_at', '>=', now()->subDays(30))
-            ->get(['created_at', 'resolved_at', 'priority']);
-
-        $avgHours = $resolvedRecently->isEmpty() ? null
-            : round($resolvedRecently->avg(fn ($t) => $t->created_at->diffInMinutes($t->resolved_at)) / 60, 1);
-
-        $withinSla = $resolvedRecently->isEmpty() ? null
-            : (int) round(100 * $resolvedRecently->filter(
-                fn ($t) => $t->resolved_at->lte($t->created_at->copy()->addHours($t->priority->slaHours()))
-            )->count() / $resolvedRecently->count());
-
-        // Satisfaction over the last 30 days.
-        $ratings = Ticket::whereNotNull('rating')->where('rated_at', '>=', now()->subDays(30))->pluck('rating');
-        $satisfaction = $ratings->isEmpty() ? null : [
-            'average' => round($ratings->avg(), 1),
-            'happy' => (int) round(100 * $ratings->filter(fn ($r) => $r >= 4)->count() / $ratings->count()),
-            'count' => $ratings->count(),
-        ];
+        // Same figures as the Reports page for the last 30 days.
+        $month = TicketMetrics::summarise(Ticket::where('created_at', '>=', now()->subDays(30)->startOfDay())->get());
 
         // Tickets created per day over the last 14 days.
         $since = now()->subDays(13)->startOfDay();
@@ -63,9 +47,7 @@ class DashboardController extends Controller
             'unassignedCount' => $active->whereNull('assignee_id')->count(),
             'overdueCount' => $active->filter->isOverdue()->count(),
             'resolvedLastWeek' => Ticket::where('resolved_at', '>=', now()->subDays(7))->count(),
-            'avgHours' => $avgHours,
-            'withinSla' => $withinSla,
-            'satisfaction' => $satisfaction,
+            'month' => $month,
             'perDay' => $perDay,
             'byCategory' => Category::withCount(['tickets' => fn ($q) => $q->active()])
                 ->orderByDesc('tickets_count')->get(),

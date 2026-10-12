@@ -12,9 +12,9 @@
         <x-stat-card label="Active tickets" :value="$activeCount" :href="route('tickets.index', ['status' => 'active'])" hint="Open, in progress or waiting" />
         <x-stat-card label="Unassigned" :value="$unassignedCount" :tone="$unassignedCount ? 'amber' : 'slate'" :href="route('tickets.index', ['view' => 'unassigned'])" hint="Need an owner" />
         <x-stat-card label="Overdue" :value="$overdueCount" :tone="$overdueCount ? 'red' : 'slate'" hint="Past their target time" />
-        <x-stat-card label="Resolved (7 days)" :value="$resolvedLastWeek" tone="emerald" :hint="$avgHours !== null ? 'Avg. '.$avgHours.'h to resolve · '.$withinSla.'% on target (30 days)' : null" />
-        <x-stat-card label="Satisfaction" :value="$satisfaction ? $satisfaction['average'].' / 5' : '–'" tone="amber"
-                     :hint="$satisfaction ? $satisfaction['happy'].'% rated 4-5 stars · '.$satisfaction['count'].' ratings (30 days)' : 'No ratings yet'" class="col-span-2 lg:col-span-1" />
+        <x-stat-card label="Resolved (7 days)" :value="$resolvedLastWeek" tone="emerald" :hint="$month['avg_hours'] !== null ? 'Avg. '.$month['avg_hours'].'h to resolve · '.$month['within_target'].'% on target (30 days)' : null" />
+        <x-stat-card label="Satisfaction" :value="$month['rating'] !== null ? $month['rating'].' / 5' : '–'" tone="amber" :href="route('reports')"
+                     :hint="$month['ratings'] ? $month['happy'].'% rated 4-5 stars · '.$month['ratings'].' ratings (30 days)' : 'No ratings yet'" class="col-span-2 lg:col-span-1" />
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
