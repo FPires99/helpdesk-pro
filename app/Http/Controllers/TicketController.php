@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketEvent;
 use App\Models\User;
+use App\Services\TicketNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -62,9 +63,10 @@ class TicketController extends Controller
         ]);
     }
 
-    public function store(StoreTicketRequest $request): RedirectResponse
+    public function store(StoreTicketRequest $request, TicketNotifier $notifier): RedirectResponse
     {
         $ticket = $request->user()->tickets()->create($request->validated());
+        $notifier->created($ticket);
 
         return redirect()
             ->route('tickets.show', $ticket)
@@ -93,19 +95,20 @@ class TicketController extends Controller
             'categories' => Category::orderBy('name')->get(),
             'statuses' => TicketStatus::cases(),
             'priorities' => TicketPriority::cases(),
-            'staff' => User::staff()->orderBy('name')->get(),
+            'staff' => User::staff()->active()->orderBy('name')->get(),
         ]);
     }
 
-    public function update(UpdateTicketRequest $request, Ticket $ticket): RedirectResponse
+    public function update(UpdateTicketRequest $request, Ticket $ticket, TicketNotifier $notifier): RedirectResponse
     {
         $ticket->update($request->validated());
+        $notifier->updated($ticket, $request->user());
 
         return back()->with('status', 'Ticket updated.');
     }
 
     /** Quick action for staff: take ownership of a ticket. */
-    public function assignToMe(Request $request, Ticket $ticket): RedirectResponse
+    public function assignToMe(Request $request, Ticket $ticket, TicketNotifier $notifier): RedirectResponse
     {
         Gate::authorize('update', $ticket);
 
@@ -114,6 +117,7 @@ class TicketController extends Controller
             $ticket->status = TicketStatus::InProgress;
         }
         $ticket->save();
+        $notifier->updated($ticket, $request->user());
 
         return back()->with('status', "You're now handling {$ticket->reference()}.");
     }

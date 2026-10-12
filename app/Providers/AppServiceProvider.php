@@ -30,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
                 'active' => (clone $active)->count(),
                 'mine' => $user->isStaff() ? (clone $active)->where('assignee_id', $user->id)->count() : null,
                 'unassigned' => $user->isStaff() ? (clone $active)->whereNull('assignee_id')->count() : null,
+                'notifications' => $user->unreadNotifications()->count(),
             ]);
         });
     }

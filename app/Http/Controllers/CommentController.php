@@ -5,16 +5,17 @@ namespace App\Http\Controllers;
 use App\Enums\TicketStatus;
 use App\Http\Requests\StoreCommentRequest;
 use App\Models\Ticket;
+use App\Services\TicketNotifier;
 use Illuminate\Http\RedirectResponse;
 
 class CommentController extends Controller
 {
-    public function store(StoreCommentRequest $request, Ticket $ticket): RedirectResponse
+    public function store(StoreCommentRequest $request, Ticket $ticket, TicketNotifier $notifier): RedirectResponse
     {
         $user = $request->user();
         $internal = $request->boolean('is_internal');
 
-        $ticket->comments()->create([
+        $comment = $ticket->comments()->create([
             'user_id' => $user->id,
             'body' => $request->validated('body'),
             'is_internal' => $internal,
@@ -33,6 +34,7 @@ class CommentController extends Controller
         }
 
         $ticket->touch();
+        $notifier->replied($comment);
 
         return redirect()
             ->to(route('tickets.show', $ticket).'#comments')

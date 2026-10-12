@@ -10,9 +10,14 @@ use App\Models\Comment;
 use App\Models\Ticket;
 use App\Models\TicketEvent;
 use App\Models\User;
+use App\Notifications\TicketAssigned;
+use App\Notifications\TicketCreated;
+use App\Notifications\TicketNotification;
+use App\Notifications\TicketReplied;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Demo data for a fictional company, "Northwind Logistics".
@@ -172,6 +177,34 @@ class DatabaseSeeder extends Seeder
                 }
             }
         }
+
+        // A few unread notifications for the demo accounts.
+        $tech = $technicians->first();
+        foreach (Ticket::active()->latest()->take(3)->get() as $ticket) {
+            $this->notify($tech, new TicketCreated($ticket), $ticket->created_at);
+        }
+        foreach (Ticket::where('assignee_id', $tech->id)->active()->get() as $ticket) {
+            $this->notify($tech, new TicketAssigned($ticket, $admin), $ticket->created_at->copy()->addMinutes(5));
+        }
+        foreach ($demoEmployee->tickets()->with('comments.author')->get() as $ticket) {
+            $reply = $ticket->comments->first(fn ($c) => $c->author->isStaff() && ! $c->is_internal);
+            if ($reply) {
+                $this->notify($demoEmployee, new TicketReplied($reply), $reply->created_at, read: ! $ticket->status->isActive());
+            }
+        }
+    }
+
+    /** Store an in-app notification directly (no email) so the demo bell has something in it. */
+    private function notify(User $user, TicketNotification $notification, Carbon $at, bool $read = false): void
+    {
+        $user->notifications()->create([
+            'id' => (string) Str::uuid(),
+            'type' => $notification::class,
+            'data' => $notification->toArray($user),
+            'read_at' => $read ? $at : null,
+            'created_at' => $at,
+            'updated_at' => $at,
+        ]);
     }
 
     private function event(Ticket $ticket, User $actor, string $type, ?string $from, ?string $to, Carbon $at): void

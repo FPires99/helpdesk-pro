@@ -32,6 +32,11 @@
                         Dashboard
                     </x-sidebar-link>
 
+                    <x-sidebar-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')" :count="$navCounts['notifications']">
+                        <x-slot:icon><svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg></x-slot:icon>
+                        Notifications
+                    </x-sidebar-link>
+
                     @if (auth()->user()->isStaff())
                         <x-sidebar-link :href="route('tickets.index', ['status' => 'active'])" :active="request()->routeIs('tickets.index') && ! request('view')" :count="$navCounts['active']">
                             <x-slot:icon><svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z"/></svg></x-slot:icon>
@@ -87,7 +92,13 @@
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                     </button>
                     <x-application-logo class="h-7 w-7" />
-                    <span class="font-bold">HelpDesk<span class="text-indigo-600"> Pro</span></span>
+                    <span class="flex-1 font-bold">HelpDesk<span class="text-indigo-600"> Pro</span></span>
+                    <a href="{{ route('notifications.index') }}" class="relative rounded-md p-1.5 text-slate-600 hover:bg-slate-100" aria-label="Notifications">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>
+                        @if ($navCounts['notifications'])
+                            <span class="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+                        @endif
+                    </a>
                 </div>
 
                 @isset($header)
