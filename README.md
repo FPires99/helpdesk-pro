@@ -1,5 +1,7 @@
 # HelpDesk Pro
 
+[![tests](https://github.com/FPires99/helpdesk-pro/actions/workflows/tests.yml/badge.svg)](https://github.com/FPires99/helpdesk-pro/actions/workflows/tests.yml)
+
 An IT service desk where employees raise support tickets and the IT team works the queue, with priority-based target times, internal notes and a live dashboard.
 
 Built with **Laravel 12**, **Blade**, **Tailwind CSS** and **Alpine.js**, and covered by automated feature tests.
