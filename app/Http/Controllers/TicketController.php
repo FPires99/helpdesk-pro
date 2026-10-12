@@ -7,6 +7,7 @@ use App\Enums\TicketStatus;
 use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Models\Attachment;
+use App\Models\CannedResponse;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketEvent;
@@ -100,6 +101,9 @@ class TicketController extends Controller
             'statuses' => TicketStatus::cases(),
             'priorities' => TicketPriority::cases(),
             'staff' => User::staff()->active()->orderBy('name')->get(),
+            'savedReplies' => $request->user()->isStaff()
+                ? CannedResponse::orderBy('title')->get()->map(fn ($r) => ['title' => $r->title, 'body' => $r->fillFor($ticket, $request->user())])
+                : collect(),
         ]);
     }
 

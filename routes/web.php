@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\CannedResponseController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
@@ -23,6 +24,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('kb', ArticleController::class)->parameters(['kb' => 'article'])->names('articles');
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
+
+    Route::middleware('staff')->group(function () {
+        Route::resource('saved-replies', CannedResponseController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->parameters(['saved-replies' => 'cannedResponse'])
+            ->names('canned-responses');
+    });
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/{id}', [NotificationController::class, 'open'])->name('notifications.open');

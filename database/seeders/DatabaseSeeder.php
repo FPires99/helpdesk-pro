@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Models\Attachment;
+use App\Models\CannedResponse;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Ticket;
@@ -181,6 +182,16 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(ArticleSeeder::class);
+
+        foreach ([
+            ['Restart and try again', "Hi {name},\n\nCould you please restart your computer and try again? This fixes a lot of issues after updates.\n\nIf it's still not working, just reply here and I'll take a look.\n\n{agent}"],
+            ['Need remote access', "Hi {name},\n\nI'd like to connect to your computer remotely to look at this. Could you let me know a time in the next hour when you're at your desk?\n\nThanks,\n{agent}"],
+            ['Resolved: please confirm', "Hi {name},\n\nI've applied a fix for {ticket}. Could you check it's working on your side? If anything is still wrong, just reply and the ticket will reopen.\n\n{agent}"],
+            ['Password reset done', "Hi {name},\n\nYour password has been reset and your account unlocked. Please remember to update the password in Outlook and Teams on your phone too.\n\n{agent}"],
+            ['Hardware ordered', "Hi {name},\n\nA replacement has been ordered and should arrive in 2-3 working days. I'll update {ticket} as soon as it's here.\n\n{agent}"],
+        ] as [$title, $body]) {
+            CannedResponse::create(['title' => $title, 'body' => $body, 'user_id' => $technicians->first()->id]);
+        }
 
         // A screenshot of the error on one ticket, to show attachments.
         Storage::disk(Attachment::DISK)->deleteDirectory('attachments');
